@@ -58,7 +58,7 @@ export async function clearSession(telegramUserId) {
   })
 }
 
-export async function issueReferralLink({ telegramUserId, telegramUsername, fullName, phone }) {
+export async function issueReferralLink({ telegramUserId, telegramUsername, fullName, phone, email }) {
   const data = await apiFetch('/api/referral-bot/issue-link', {
     method: 'POST',
     body: JSON.stringify({
@@ -66,6 +66,7 @@ export async function issueReferralLink({ telegramUserId, telegramUsername, full
       telegramUsername,
       fullName,
       phone,
+      email: email ?? null,
     }),
   })
   return data.link

@@ -8,6 +8,7 @@ import {
   setSession,
 } from './snoopdoc-api.js'
 import { getGrammyClientConfig, initTelegramClient, telegramFetch } from './telegram-client.js'
+import { parseContactMessage } from './parse-contact.js'
 
 const token = process.env.REFERRAL_BOT_TOKEN?.trim()
 if (!token) {
@@ -24,18 +25,18 @@ const START_TEXT =
   'Привет! Я бот реферальной программы СнупДок.\n\n' +
   'Нажмите «Получить ссылку» и получите ссылку для приглашения команд.'
 
-const ASK_NAME = 'Напишите ваше ФИО (полностью):'
-const ASK_PHONE = 'Теперь отправьте номер телефона (можно в любом формате):'
-const INVALID_NAME = 'ФИО должно содержать минимум 2 символа. Попробуйте ещё раз:'
-const INVALID_PHONE = 'Укажите корректный номер телефона (минимум 10 цифр):'
+const ASK_CONTACT =
+  'Напишите имя или почту и номер телефона в одном сообщении.\n\n' +
+  'Например:\n' +
+  'Мария +7 999 123-45-67\n' +
+  'ivan@mail.ru 89991234567'
+
+const INVALID_CONTACT =
+  'Не получилось разобрать сообщение.\n\n' +
+  'Укажите имя или почту и телефон (минимум 10 цифр) в одном сообщении, например:\n' +
+  'Мария +7 999 123-45-67'
 
 const mainKeyboard = new Keyboard().text('Получить ссылку').resized()
-
-function normalizePhone(raw) {
-  const digits = raw.replace(/\D/g, '')
-  if (digits.length < 10) return null
-  return raw.trim().startsWith('+') ? '+' + digits : '+' + digits
-}
 
 function formatExpiry(date) {
   return new Date(date).toLocaleDateString('ru-RU', {
@@ -70,13 +71,16 @@ async function sendExistingLink(ctx, link) {
   )
 }
 
-async function issueLink(ctx, { telegramUserId, username, fullName, phone }) {
+async function issueLink(ctx, { telegramUserId, username, contact, phone, email }) {
   const link = await issueReferralLink({
     telegramUserId,
     telegramUsername: username,
-    fullName,
+    fullName: contact,
     phone,
+    email,
   })
+
+  await clearSession(String(telegramUserId))
 
   await ctx.reply(
     `Готово! Ваша реферальная ссылка (действует до ${formatExpiry(link.expiresAt)}):\n\n${link.url}\n\n` +
@@ -93,8 +97,8 @@ async function startLinkFlow(ctx, telegramUserId) {
     return
   }
 
-  await setSession(String(telegramUserId), 'awaiting_name')
-  await ctx.reply(ASK_NAME, { reply_markup: { remove_keyboard: true } })
+  await setSession(String(telegramUserId), 'awaiting_contact')
+  await ctx.reply(ASK_CONTACT, { reply_markup: { remove_keyboard: true } })
 }
 
 const bot = new Bot(token, getGrammyClientConfig())
@@ -121,27 +125,18 @@ bot.on('message:text', async (ctx) => {
   const session = await getSession(telegramUserId)
   if (!session) return
 
-  if (session.step === 'awaiting_name') {
-    if (text.length < 2) {
-      await ctx.reply(INVALID_NAME)
-      return
-    }
-    await setSession(telegramUserId, 'awaiting_phone', text)
-    await ctx.reply(ASK_PHONE)
-    return
-  }
-
-  if (session.step === 'awaiting_phone') {
-    const phone = normalizePhone(text)
-    if (!phone) {
-      await ctx.reply(INVALID_PHONE)
+  if (session.step === 'awaiting_contact') {
+    const parsed = parseContactMessage(text)
+    if (!parsed) {
+      await ctx.reply(INVALID_CONTACT)
       return
     }
     await issueLink(ctx, {
       telegramUserId,
       username: ctx.from.username,
-      fullName: session.full_name || text,
-      phone,
+      contact: parsed.contact,
+      phone: parsed.phone,
+      email: parsed.email,
     })
   }
 })
