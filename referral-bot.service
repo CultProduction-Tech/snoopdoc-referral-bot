@@ -1,0 +1,15 @@
+[Unit]
+Description=SnoopDoc Referral Telegram Bot
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/snoopdoc-referral-bot
+EnvironmentFile=/opt/snoopdoc-referral-bot/.env
+ExecStart=/usr/bin/node src/index.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

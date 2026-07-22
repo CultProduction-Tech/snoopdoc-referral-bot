@@ -1,0 +1,14 @@
+{
+  "name": "snoopdoc-referral-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "delete-webhook": "node src/delete-webhook.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.6.1",
+    "grammy": "^1.38.2"
+  }
+}
