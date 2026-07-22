@@ -7,7 +7,7 @@ import {
   issueReferralLink,
   setSession,
 } from './snoopdoc-api.js'
-import { getGrammyClientConfig, telegramFetch } from './telegram-client.js'
+import { getGrammyClientConfig, initTelegramClient, telegramFetch } from './telegram-client.js'
 
 const token = process.env.REFERRAL_BOT_TOKEN?.trim()
 if (!token) {
@@ -151,6 +151,7 @@ bot.catch((err) => {
 })
 
 async function main() {
+  await initTelegramClient()
   await deleteWebhook()
   console.log('[referral-bot] starting long polling...')
   await bot.start({
