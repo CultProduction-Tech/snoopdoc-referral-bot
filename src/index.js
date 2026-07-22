@@ -22,7 +22,7 @@ if (!process.env.REFERRAL_BOT_API_SECRET?.trim()) {
 
 const START_TEXT =
   'Привет! Я бот реферальной программы СнупДок.\n\n' +
-  'Нажмите «Получить ссылку», чтобы получить персональную ссылку для приглашения команд.'
+  'Нажмите «Получить ссылку» и получите ссылку для приглашения команд.'
 
 const ASK_NAME = 'Напишите ваше ФИО (полностью):'
 const ASK_PHONE = 'Теперь отправьте номер телефона (можно в любом формате):'
@@ -146,8 +146,21 @@ bot.on('message:text', async (ctx) => {
   }
 })
 
-bot.catch((err) => {
+bot.catch(async (err) => {
   console.error('[referral-bot] error:', err)
+  const ctx = err.ctx
+  if (!ctx) return
+
+  const message =
+    err.message?.includes('not configured') || err.message?.includes('Unauthorized')
+      ? 'Сервис временно недоступен. Мы уже разбираемся — попробуйте позже.'
+      : 'Что-то пошло не так. Попробуйте ещё раз через минуту.'
+
+  try {
+    await ctx.reply(message, { reply_markup: mainKeyboard })
+  } catch {
+    // ignore reply errors
+  }
 })
 
 async function main() {
