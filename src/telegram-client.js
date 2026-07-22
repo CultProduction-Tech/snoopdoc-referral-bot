@@ -1,4 +1,4 @@
-import { ProxyAgent } from 'undici'
+import { ProxyAgent } from 'node:undici'
 
 export function getTelegramProxyUrl() {
   return (
