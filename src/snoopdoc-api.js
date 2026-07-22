@@ -29,7 +29,10 @@ export async function findActiveTelegramLink(telegramUserId) {
   const data = await apiFetch(
     `/api/referral-bot/active-link?telegramUserId=${telegramUserId}`
   )
-  return data.link
+  return {
+    link: data.link ?? null,
+    allowMultiple: !!data.allowMultiple,
+  }
 }
 
 export async function getSession(telegramUserId) {

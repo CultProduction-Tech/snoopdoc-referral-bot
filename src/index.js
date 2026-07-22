@@ -90,22 +90,31 @@ async function issueLink(ctx, { telegramUserId, username, contact, phone, email 
 }
 
 async function startLinkFlow(ctx, telegramUserId) {
-  const existing = await findActiveTelegramLink(String(telegramUserId))
-  if (existing) {
+  const { link, allowMultiple } = await findActiveTelegramLink(String(telegramUserId))
+  if (link && !allowMultiple) {
     await clearSession(String(telegramUserId))
-    await sendExistingLink(ctx, existing)
+    await sendExistingLink(ctx, link)
     return
   }
 
+  const askText = allowMultiple
+    ? 'Напишите имя или почту и телефон для новой ссылки.\n\n' +
+      'Например:\nМария +7 999 123-45-67'
+    : ASK_CONTACT
+
   await setSession(String(telegramUserId), 'awaiting_contact')
-  await ctx.reply(ASK_CONTACT, { reply_markup: { remove_keyboard: true } })
+  await ctx.reply(askText, { reply_markup: { remove_keyboard: true } })
 }
 
 const bot = new Bot(token, getGrammyClientConfig())
 
 bot.command('start', async (ctx) => {
   const telegramUserId = String(ctx.from.id)
-  await ctx.reply(START_TEXT, { reply_markup: mainKeyboard })
+  const { allowMultiple } = await findActiveTelegramLink(telegramUserId)
+  const intro = allowMultiple
+    ? START_TEXT + '\n\nВы можете получать несколько ссылок для разных контактов.'
+    : START_TEXT
+  await ctx.reply(intro, { reply_markup: mainKeyboard })
   await setSession(telegramUserId, 'idle')
 })
 
